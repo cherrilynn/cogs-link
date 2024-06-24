@@ -96,14 +96,18 @@ class EventsCore(Core):
             return
 
         # the actual code part
-        fx_twtter_urls = convert_to_fx_twitter_url(message.content)
+        fx_twtter_urls = convert_to_fx_twitter_url(message.embeds)
 
         # no changed urls detected
         if not fx_twtter_urls:
             return
 
         # constructs the message and replies without a mention
-        await message.reply(urls_to_string(fx_twtter_urls, SocialMedia.TWITTER), mention_author=False)
+        ok = await message.reply(urls_to_string(fx_twtter_urls, SocialMedia.TWITTER), mention_author=False)
+
+    # Remove embeds from user message if reply is successful
+        if ok:
+            await message.edit(suppress=True)
 
     async def _on_edit_twit_replacer(
         self, message_before: Message, message_after: Message
@@ -120,14 +124,28 @@ class EventsCore(Core):
             )
             return
 
-        fx_twtter_urls = convert_to_fx_twitter_url(message_after.content)
+        video_embed_before = [embed for embed in message_before.embeds if embed.video]
+        video_embed_after = [embed for embed in message_after.embeds if embed.video]
+        new_video_embeds = [
+            embed for embed in video_embed_after if embed not in video_embed_before
+        ]
+
+        # skips if the message has no new embeds
+        if not new_video_embeds:
+            return
+
+        fx_twtter_urls = convert_to_fx_twitter_url(message_after.embeds)
 
         # no changed urls detected
         if not fx_twtter_urls:
             return
 
         # constructs the message and replies without a mention
-        await message_after.reply(urls_to_string(fx_twtter_urls, SocialMedia.TWITTER), mention_author=False)
+        ok = await message_after.reply(urls_to_string(fx_twtter_urls, SocialMedia.TWITTER), mention_author=False)
+
+        # Remove embeds from user message if reply is successful
+        if ok:
+            await message_after.edit(suppress=True)
 
     async def _on_message_tik_replacer(self, message: Message):
         if not valid(message):
